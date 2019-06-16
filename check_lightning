@@ -1,0 +1,122 @@
+#!/usr/bin/python
+
+# 28 May 2019 - gswann
+# connects to lightning manager to get pertinent lightning data
+# may make decision to shutdown this system
+
+#from time import sleep
+
+# version 1.1 - 12 Jun 2019 - gswann
+# will shutdown itself when LD says 100%
+
+from __future__ import print_function
+import time
+import socket
+from subprocess import check_call
+
+# which mode do we use?
+# 0 = real port, real cmd
+# 1 = test port, real cmd
+# 2 = test port, test cmd 
+
+testmode = 0
+
+if testmode > 0:
+   print("starting test port mode...")
+   testport = 1
+else:
+   testport = 0
+    
+if testmode == 2:
+    print("starting test cmd mode...")
+    upsCmd = 'pause'
+else:
+    print("starting real cmd mode...")
+    upsCmd = 'stop'
+
+myHost = socket.gethostname()
+# create map from hostname to supporting UPS
+map = {'rp6':'ota7',
+       'rp5':'ota5',
+       'zero4':'ota6'}
+upsHost = (map[myHost])
+myURL = 'http://ups-control-' + upsHost + './' + upsCmd
+
+print('running on host ' + myHost + ' supported by ' + upsHost)
+print('with command URL ' + myURL)
+# print(myURL)
+
+print('')
+strikes = 0
+oldStrikes = 0
+prob = -1
+oldProb = -1
+mySleep = 2
+
+def checkin():
+    global mySleep,oldStrikes,strikes,delta,samecnt,oldProb,prob
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    host = 'zero5'
+    if testport == 0:
+       port = 4700
+    else:
+       port = 4701
+    s.settimeout(5.0)
+
+    try:
+       s.connect((host, port))
+    except:
+          print('couldnt connect')
+          prob = -1
+#          time.sleep(10)
+#          s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+       # Receive no more than 1024 bytes
+
+    else:    
+       s.sendall(b'status')
+       msg = s.recv(1024)
+       s.close()
+       hdr,strikes,delta,samecnt,prob =msg.split(" ")
+       strikes = int(strikes)
+       delta = int(delta)
+       prob = int(prob)
+       print (hdr,strikes,delta,samecnt,prob, end=' - ') 
+
+       if (strikes != oldStrikes) or (prob != oldProb):
+          mySleep = 2
+          oldStrikes = strikes
+          oldProb = prob
+       else:
+          mySleep += 4
+          if mySleep > 30:
+            mySleep = 30
+
+#       print strikes
+#       print (msg.decode('ascii'))
+
+
+while 1:
+	checkin()
+
+	if prob == 0:
+	   print ("not much chance (0) of a storm")
+	elif prob == 5:
+	   print ("Minimal (5) storm detected")
+	elif prob == 20:
+	   print ("Minimal (20) storm detected")
+	elif prob == 30:
+	   print ("Storm (30) detected")
+        elif prob == 60:
+           print ("Storm approaching")
+        elif prob == 90:
+           print ("Storm close by!")
+        elif prob == 95:
+           print ("Storm right here!")
+        elif prob == 100:
+           print ("Storm is on top - shutdown!")
+	   check_call(['/usr/bin/curl', myURL])
+	   # if we are shutting down, wait a few minutes
+	   # do not resend the shutdown command
+	   print("Sleeping for 5 minutes if in test mode")
+	   time.sleep(300)
+	time.sleep(mySleep)
