@@ -2,7 +2,7 @@
 Programs to read Acurite Lightning sensor data and transmit an opinion about the likelihood of a close-by lightning strike.
 
 detect.py:
-   The main decision making program. Copy to detect-test.py and edeit the testmode flag to do parallel testing.
+   The main decision making program. Copy to detect-test.py and edit the testmode flag to do parallel testing.
    
 rules.py:
    Thresholds as currently calculated.
@@ -25,6 +25,6 @@ events.sql:
 ### client software
 
 check_lightning:
-   This program connects to the lightning manager to read its opinion on likelihood of a "close-by" strike.  If 100%, the program will shutdown the Raspberry Pi, the UPS3 that supports the RPI, and then disconnect from the wall wart adapter powering the UPS3. 
+   This program connects to the lightning manager to read its opinion on likelihood of a "close-by" strike.  If 100%, the program will shutdown the Raspberry Pi, the UPS3 that supports the RPI, and then disconnect from the wall wart adapter powering the UPS3. There is a testmode flag so that you can connect to a different ports (detect-test.py).  Also can generate test URL instead of real URL.  See the program comments.
    
    
