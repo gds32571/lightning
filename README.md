@@ -25,6 +25,6 @@ events.sql:
 ### client software
 
 check_lightning:
-   This program connects to the lightning manager to read its opinion on likelihood of a "close-by" strike.  If 100%, the program will shutdown the Raspberry Pi, the UPS3 that supports the RPI, and then disconnect from the wall wart adapter powering the UPS3. There is a testmode flag so that you can connect to a different ports (detect-test.py).  Also can generate test URL instead of real URL.  See the program comments.
+   This program connects to the lightning manager to read its opinion on likelihood of a "close-by" strike.  If 100%, the program will shutdown the Raspberry Pi, the UPS3 that supports the RPI, and then disconnect from the wall wart adapter powering the UPS3. There is a testmode flag so that you can connect to a different port in a different program (detect-test.py).  Also can generate test URL instead of real URL.  See the program comments.
    
    
