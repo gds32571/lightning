@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+
+import sys
+from time import sleep,strftime
+from datetime import datetime
+import time
+
+import paho.mqtt.publish as publish
+import paho.mqtt.client as mqtt
+
+import sqlite3
+
+topic = "ha32163/lightning/#"
+HAhost = "192.168.2.6"
+print("starting")
+
+start = time.time()
+myElapsed = round(time.time(),3)
+
+if len(sys.argv) > 1:
+   myStorm = sys.argv[1]
+else:
+   myStorm = '1'
+
+print("Playing storm " + myStorm)
+
+a = 1
+myTick = 1
+pseudoSeconds = 0
+
+while a > 0:
+    myElapsed = round(time.time() - start,3) 
+    print(myElapsed)
+
+    topic = 'test'
+    
+    conn = sqlite3.connect('./lightning.db')
+    c = conn.cursor()
+    c.execute('select * from events where stormevent = ? order by elapsed asc',myStorm)
+    row = (c.fetchall())
+
+    x = 0
+    while x < len(row):
+       sleep(myTick) 
+       pseudoSeconds += 1
+       while (row[x][2]) >= pseudoSeconds:
+          sleep(myTick)
+          pseudoSeconds += 1
+       print(row[x])
+       publish.single(row[x][3]+"/test" , row[x][4] , hostname=HAhost, auth = {'username':"hass", 'password':"hass"})
+       sleep(1)
+       x += 1
+ 
+    conn.close()
+    a = 0
+    
