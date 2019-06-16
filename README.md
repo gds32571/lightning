@@ -7,7 +7,7 @@ detect.py:
 rules.py:
    Thresholds as currently calculated.
 
-## testing subsystem:
+### testing subsystem:
 These should be in a separate folder.
 
 MQTTRecorder:
@@ -22,4 +22,5 @@ run_test:
 events.sql:
    A database dump of a storm event
    
-## client software
+### client software
+
