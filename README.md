@@ -24,3 +24,7 @@ events.sql:
    
 ### client software
 
+check_lightning:
+   This program connects to the lightning manager to read its opionion on likelihood of a "close-by" strike.  If 100%, the program will shutdown the Raspberry Pi, the UPS3 that supports the RPI, and then disconnect from the wall wart adapter powering the UPS3. 
+   
+   
