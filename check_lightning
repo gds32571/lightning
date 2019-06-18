@@ -76,7 +76,7 @@ def checkin():
        s.sendall(b'status')
        msg = s.recv(1024)
        s.close()
-       hdr,strikes,delta,samecnt,prob =msg.split(" ")
+       hdr,strikes,delta,samecnt,prob = msg.split(" ")
        strikes = int(strikes)
        delta = int(delta)
        prob = int(prob)
@@ -94,6 +94,20 @@ def checkin():
 #       print strikes
 #       print (msg.decode('ascii'))
 
+# if the very first prob is 100, wait until it isn't
+# we don't want to reboot after an hour and immediately shutdown again.
+# I think...
+
+# prob = 100
+
+print("Checking for good startup value")
+while (prob == 100 or prob == -1):
+   checkin()
+   if (prob == 100 or prob == -1):
+      print("Waiting for good startup value")
+      time.sleep(30)
+
+print("OK to start up")
 
 while 1:
 	checkin()
