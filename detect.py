@@ -27,6 +27,7 @@ else:
 
 myLightning = 0
 strikedelta = 0
+strikedelta2 = 0
 arrStrikes = [0]
 prob = 0
 
@@ -35,6 +36,7 @@ numSamples = 60/2  # 30 samples, 30 minutes
 sameCnt = 0
 
 testmode = 0
+enabled = True
 
 if testmode == 0:
    topic1 = "ha32163/lightning/strikes"
@@ -93,6 +95,7 @@ def on_message(client, userdata, msg):
     global arrStrikes
     global sameCnt
     global strikedelta
+    global strikedelta2
     global prob
     global numSamples
     global myStart
@@ -138,19 +141,22 @@ def on_message(client, userdata, msg):
            sameCnt = arrStrikes.count((myLightning))
         # don't use 1 hour ago, use 20 minutes ago
         # now 30 minutes ago
-           strikedelta = int(arrStrikes[-1]) - int(arrStrikes[0])
+        # now trying a shorter time span also
+           strikedelta  = int(arrStrikes[-1]) - int(arrStrikes[0])
+           strikedelta2 = int(arrStrikes[-1]) - int(arrStrikes[20])
         # has strike counter rolled over?
            if strikedelta < 0:
-              arrStrikes[0] = arrStrikes[-1] - 127
-              strikedelta = int(arrStrikes[-1]) - int(arrStrikes[0])
+              strikedelta = int(arrStrikes[-1]) - int(arrStrikes[0]) + 128
+           if strikedelta2 < 0:
+              strikedelta2 = int(arrStrikes[-1]) - int(arrStrikes[20]) + 128
         print("same strikes= " + str(sameCnt))
-        print("strikedelta= " + str(strikedelta))
+        print("strikedelta= " + str(strikedelta) + "   strikedelta2= " + str(strikedelta2) )
         print("stormdistance= " + str(stormDistance))
 
 
 #          print type(sameCnt),type(strikedelta),type(stormDistance)
 
-        prob = rules.myRules((strikedelta),(stormDistance))
+        prob = rules.myRules(strikedelta,strikedelta2,stormDistance)
                     
         print"Storm probability= " + str(prob)      
              
@@ -208,6 +214,7 @@ client.loop_start()
 oldmin =  datetime.now().minute
 
 prob = 0
+
 while True:
 
    if oldmin != datetime.now().minute:
@@ -228,6 +235,7 @@ while True:
     connects += 1
     myStr = 'Connection ' + str(ctr) + ' from ' + str(addr) + '(' + srvName + ') ' + str(timeouts) + "/" + str(connects)
     print myStr
+    
     i = 1
     while i > 0:
       data = conn.recv(1024)
@@ -245,16 +253,10 @@ while True:
         conn.sendall('strikes ' + str(myLightning) + ' ' + str(strikedelta) 
            + ' ' + str(sameCnt) + ' ' + str(prob))
 
-
-        # print "Length= " + str(len(arrStrikes))
-        # print "Array " + str(arrStrikes)
-        # print "mysameCnt " + str(sameCnt)
-        # print "my matching " + str(arrStrikes.count(str(myLightning)))
         i = 0
       else:
         print ('Unknown request')  
         conn.sendall('Unknown request ' )
         i = 0
-   
 
 conn.close()
