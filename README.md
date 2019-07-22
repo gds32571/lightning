@@ -1,10 +1,10 @@
 # lightning
 Programs to read Acurite Lightning sensor data and transmit an opinion about the likelihood of a close-by lightning strike.
 
-detect.py:
+## detect.py:
    The main decision making program. Copy to detect-test.py and edit the testmode flag to do parallel testing.
    
-rules.py:
+## rules.py:
    Thresholds as currently calculated.
 
 ### testing subsystem:
