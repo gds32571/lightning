@@ -162,7 +162,7 @@ def on_message(client, userdata, msg):
              
         try:
 
-            if testmode == 0:
+            if testmode == 0 or testmode == 1:
                publish.single("zero5/strikedelta" , strikedelta , hostname=hassHost, auth = {'username':"hass", 'password':"hass"})
                publish.single("zero5/stormprobability" , prob , hostname=hassHost, auth = {'username':"hass", 'password':"hass"})
         except:
@@ -186,7 +186,8 @@ PORT = 4700
 if testmode == 0:
    PORT = 4700
 else:
-   PORT = 4701
+#   PORT = 4701
+   PORT = 4700
 ##########################
 connected = 0
 while connected == 0:

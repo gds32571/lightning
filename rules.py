@@ -1,9 +1,9 @@
 # rules file for the detect program
 
-def myRules(strikedelta,stormDistance):
+def myRules(strikedelta,strikedelta2,stormDistance):
     
  
-    if strikedelta > 25 and stormDistance < 5:
+    if (strikedelta > 25 or strikedelta2 > 20) and stormDistance < 5:
        prob = 100   
     elif strikedelta > 15 and stormDistance < 8:
        prob = 95   
@@ -15,10 +15,12 @@ def myRules(strikedelta,stormDistance):
        prob = 30
     elif strikedelta == 1 and stormDistance < 16:
        prob = 20
+    elif strikedelta == 0 and stormDistance == 0:
+       prob = 0
     elif strikedelta == 0 and stormDistance < 6:
        prob = 5
     else:
        prob = 0
-#    print(strikedelta,stormDistance,prob)
+#    print(strikedelta,strikedelta2,stormDistance,prob)
 
     return prob
