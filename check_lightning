@@ -9,10 +9,24 @@
 # version 1.1 - 12 Jun 2019 - gswann
 # will shutdown itself when LD says 100%
 
+# version 1.2 - 13 Jul 2019 - gswann
+# prints myURL into logfile
+
+# version 1.3 14 Jul 2019 - gswann
+# accesses ups at startup for testing
+
+# version 1.4 15 jul 2019 - gswann
+# use MQTT publish to xmit return code to HA server
+# adding try block around curl
+
 from __future__ import print_function
 import time
+from datetime import datetime
 import socket
 from subprocess import check_call
+import paho.mqtt.publish as publish
+
+version = "1.4"
 
 # which mode do we use?
 # 0 = real port, real cmd
@@ -34,6 +48,7 @@ else:
     print("starting real cmd mode...")
     upsCmd = 'stop'
 
+
 myHost = socket.gethostname()
 # create map from hostname to supporting UPS
 map = {'rp6':'ota7',
@@ -41,7 +56,10 @@ map = {'rp6':'ota7',
        'zero4':'ota6'}
 upsHost = (map[myHost])
 myURL = 'http://ups-control-' + upsHost + './' + upsCmd
+myURLtest = 'http://ups-control-' + upsHost + './'
 
+retcode = 99
+print("Version " + version)
 print('running on host ' + myHost + ' supported by ' + upsHost)
 print('with command URL ' + myURL)
 # print(myURL)
@@ -52,6 +70,15 @@ oldStrikes = 0
 prob = -1
 oldProb = -1
 mySleep = 2
+
+def checkUPS():
+   global myURLtest, retcode
+   print("\n*********************")
+   try:
+      retcode = check_call(['/usr/bin/curl', myURLtest])
+   except:
+      publish.single(myHost + "/retcode",retcode, hostname = "ha32163", auth={'username':"hass", 'password':"hass"})
+   print("*********************\n")
 
 def checkin():
     global mySleep,oldStrikes,strikes,delta,samecnt,oldProb,prob
@@ -102,14 +129,24 @@ def checkin():
 
 print("Checking for good startup value")
 while (prob == 100 or prob == -1):
+   checkUPS()
    checkin()
+
    if (prob == 100 or prob == -1):
       print("Waiting for good startup value")
       time.sleep(30)
 
+#checkUPS()
 print("OK to start up")
+publish.single(myHost + "/retcode",retcode, hostname = "ha32163", auth={'username':"hass", 'password':"hass"})
+
+myTime = time.time() + 120
 
 while 1:
+        if myTime < time.time():
+           checkUPS()
+           myTime = time.time() + 120
+
 	checkin()
 
 	if prob == 0:
@@ -128,9 +165,19 @@ while 1:
            print ("Storm right here!")
         elif prob == 100:
            print ("Storm is on top - shutdown!")
+	   outf = open("check.log","a")
+	   outf.write(time.strftime(" %Y/%m/%d"))
+	   outf.write(time.strftime(" %H:%M:%S"))
+	   outf.write("  -  Storm is on top - shutdown!\n")
+#	   outf.write(myURL)
+#	   outf.write("\n")
+	   outf.flush()
+	   outf.close()
+
 	   check_call(['/usr/bin/curl', myURL])
 	   # if we are shutting down, wait a few minutes
 	   # do not resend the shutdown command
+
 	   print("Sleeping for 5 minutes if in test mode")
 	   time.sleep(300)
 	time.sleep(mySleep)
