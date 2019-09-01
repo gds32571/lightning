@@ -19,6 +19,12 @@
 # use MQTT publish to xmit return code to HA server
 # adding try block around curl
 
+# version 1.5 5 Aug 2019 - gswann
+# added error detection on socket receive
+# increased the timeout from 5 to 15 on receive.
+# added deadman
+
+
 from __future__ import print_function
 import time
 from datetime import datetime
@@ -26,7 +32,7 @@ import socket
 from subprocess import check_call
 import paho.mqtt.publish as publish
 
-version = "1.4"
+version = "1.5"
 
 # which mode do we use?
 # 0 = real port, real cmd
@@ -50,11 +56,16 @@ else:
 
 
 myHost = socket.gethostname()
+
+#import pdb
+#pdb.set_trace()
+
 # create map from hostname to supporting UPS
-map = {'rp6':'ota7',
-       'rp5':'ota5',
-       'zero4':'ota6'}
-upsHost = (map[myHost])
+map = {'rp6':['ota7',3022],
+       'rp5':['ota5',3021],
+       'zero4':['ota6',3020]}
+upsHost = (map[myHost][0])
+myPort  = (map[myHost][1])
 myURL = 'http://ups-control-' + upsHost + './' + upsCmd
 myURLtest = 'http://ups-control-' + upsHost + './'
 
@@ -70,16 +81,44 @@ oldStrikes = 0
 prob = -1
 oldProb = -1
 mySleep = 2
+myTimeoutCnt = 0
 
+#*****************************************
 def checkUPS():
    global myURLtest, retcode
    print("\n*********************")
    try:
       retcode = check_call(['/usr/bin/curl', myURLtest])
    except:
-      publish.single(myHost + "/retcode",retcode, hostname = "ha32163", auth={'username':"hass", 'password':"hass"})
+      print("Couldn't check UPS")
+   publish.single(myHost + "/retcode",retcode, hostname = "ha32163", auth={'username':"hass", 'password':"hass"})
    print("*********************\n")
 
+
+#*****************************************
+def deadman(port):
+    global myTimeoutCnt
+    # create a socket object
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    host = 'ha32163'
+
+    try:
+       s.connect((host, port))
+       s.settimeout(10.0)
+
+       # Receive no more than 1024 bytes
+       s.sendall(b'mysend')
+       msg = s.recv(1024)
+       s.close()
+       print ("Watchdog " + msg.decode('ascii') + ' - ' + str(myTimeoutCnt) + ' errors')
+       #print (msg.decode('ascii'))
+    except:
+          myTimeoutCnt += 1
+          print('couldnt connect to watchdog')
+#          time.sleep(10)
+#          s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+#*****************************************
 def checkin():
     global mySleep,oldStrikes,strikes,delta,samecnt,oldProb,prob
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -88,7 +127,7 @@ def checkin():
        port = 4700
     else:
        port = 4701
-    s.settimeout(5.0)
+    s.settimeout(15.0)
 
     try:
        s.connect((host, port))
@@ -101,7 +140,12 @@ def checkin():
 
     else:    
        s.sendall(b'status')
-       msg = s.recv(1024)
+       try:
+          msg = s.recv(1024)
+       except:
+          print("Receive failed")
+          prob = -1
+          return
        s.close()
        hdr,strikes,delta,samecnt,prob = msg.split(" ")
        strikes = int(strikes)
@@ -144,11 +188,12 @@ myTime = time.time() + 120
 
 while 1:
         if myTime < time.time():
+           deadman(myPort)
            checkUPS()
            myTime = time.time() + 120
 
 	checkin()
-
+	
 	if prob == 0:
 	   print ("not much chance (0) of a storm")
 	elif prob == 5:
